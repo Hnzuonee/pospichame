@@ -88,13 +88,14 @@ async function serveHtml(env: Env): Promise<Response> {
         if (!res.ok) {
           let data = null; try { data = await res.json(); } catch {}
           setBusy(false);
-          setMsg(data?.error ? `Server chyba: ${data.error}` : `Server chyba (${res.status}).`);
+          // místo backticků používáme obyčejné stringy
+          setMsg((data && data.error) ? ('Server chyba: ' + data.error) : ('Server chyba (' + res.status + ').'));
           if (window.turnstile) turnstile.reset('#ts-widget');
           lastToken = "";
           return;
         }
         const data = await res.json();
-        if (!data?.ticket) {
+        if (!data || !data.ticket) {
           setBusy(false);
           setMsg("Chybí ticket. Zkus to znovu.");
           if (window.turnstile) turnstile.reset('#ts-widget');
@@ -225,6 +226,7 @@ async function goHandler(url: URL, env: Env): Promise<Response> {
   return new Response(null, { status: 303, headers: { Location: target } });
 }
 
+// -------- utils --------
 function json(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), {
     status,
