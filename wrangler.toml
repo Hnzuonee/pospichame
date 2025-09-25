@@ -2,8 +2,11 @@ name = "pospichame"
 main = "src/index.ts"
 compatibility_date = "2024-10-01"
 
-# Statické soubory (např. public/kristy.jpg → https://pospichame.com/kristy.jpg)
-assets = "public"
+[assets]
+directory = "public"
+# optional:
+# binding = "ASSETS"        # jen pokud bys chtěl přistupovat k assetům z kódu přes env.ASSETS
+# html_handling = "auto"    # default; nech klidně být
 
 [[kv_namespaces]]
 binding = "TICKETS"
