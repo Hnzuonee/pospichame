@@ -11,7 +11,7 @@ export default {
     const path = url.pathname;
 
     if (path === "/" && request.method === "GET") {
-      return serveHtml(env);
+      return serveHero(env);
     }
     if (path === "/health" && request.method === "GET") {
       return new Response("ok", { status: 200 });
@@ -27,55 +27,108 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 
-async function serveHtml(env: Env): Promise<Response> {
+/** ---------- HERO LANDING (PG-13) ---------- */
+async function serveHero(env: Env): Promise<Response> {
   const html = `<!doctype html>
 <html lang="cs">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Safe Link</title>
+  <title>Kristy — Official Page</title>
   <style>
     :root { color-scheme: light dark; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 24px; }
-    .wrap { max-width: 520px; margin: 0 auto; }
-    button { padding: 14px 18px; border-radius: 12px; border: 0; font-size: 16px; cursor: pointer; }
-    button:disabled { opacity: .6; cursor: not-allowed; }
-    .status { margin-top: 14px; font-size: 14px; }
-    .hidden { display: none; }
-    .card { padding: 18px; border-radius: 16px; box-shadow: 0 2px 14px rgba(0,0,0,.08); margin-top: 16px; }
+    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin:0; padding:24px; }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    .hero { display:flex; gap:24px; align-items:center; flex-wrap:wrap; }
+    .hero img { width: 220px; height:auto; border-radius:18px; object-fit:cover; box-shadow:0 4px 24px rgba(0,0,0,.08); }
+    .hgroup h1 { margin:0 0 6px; font-size:32px; }
+    .hgroup p.sub { margin:0 0 12px; opacity:.8 }
+    .bio { margin: 8px 0 16px; line-height:1.5; }
+    .links { display:flex; gap:12px; flex-wrap:wrap; margin:14px 0 20px; }
+    .links a { text-decoration:none; padding:10px 14px; border-radius:12px; border:1px solid rgba(0,0,0,.12); }
+    .cta { margin-top: 4px; }
+    .cta button { padding:14px 18px; border-radius:12px; border:0; font-size:16px; cursor:pointer; }
+    .cta button:disabled { opacity:.6; cursor:not-allowed; }
+    .note { font-size:12px; opacity:.7; margin-top:8px; }
+    .status { margin-top:12px; font-size:14px; min-height:1.2em; }
+    .footer { margin-top:28px; opacity:.7; font-size:13px; }
+    /* schovaný widget, ale v DOM (nepoužijeme invisible mode) */
+    .ts-wrap { position:absolute; left:-9999px; opacity:0; width:0; height:0; overflow:hidden; }
   </style>
   <script defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+  <meta name="robots" content="noindex,nofollow">
 </head>
 <body>
   <div class="wrap">
-    <h1>Pokračovat</h1>
-    <p>Pro bezpečné pokračování ověř prosím, že nejsi robot.</p>
-
-    <div id="ts-widget"
-         class="cf-turnstile"
-         data-sitekey="0x4AAAAAAB3aoUBtDi_jhPAf"
-         data-size="flexible"
-         data-callback="onTsSuccess"
-         data-error-callback="onTsError"
-         data-timeout-callback="onTsTimeout">
+    <div class="hero">
+      <img src="/kristy.jpg" alt="Kristy" onerror="this.style.display='none'">
+      <div class="hgroup">
+        <h1>Kristy</h1>
+        <p class="sub">Official Page • Lifestyle & Fitness</p>
+        <p class="bio">Ahoj, jsem Kristy. Miluju cestování, fitness a sdílení momentů ze svého života. Níže najdeš moje oficiální odkazy a možnost pokračovat na 18+ obsah mimo Instagram.</p>
+        <div class="links">
+          <a href="https://link.me/pospichame" target="_blank" rel="noopener">TikTok</a>
+          <a href="https://link.me/pospichame" target="_blank" rel="noopener">YouTube</a>
+          <a href="https://link.me/pospichame" target="_blank" rel="noopener">Instagram</a>
+        </div>
+        <div class="cta">
+          <button id="enterBtn">Pokračovat na 18+ obsah</button>
+          <div class="note">Pokračováním potvrzuješ, že je ti 18+.</div>
+          <div id="msg" class="status"></div>
+        </div>
+      </div>
     </div>
 
-    <div class="card">
-      <button id="goBtn">Vstoupit</button>
-      <div id="msg" class="status"></div>
+    <!-- Turnstile widget je přítomen, ale skrytý; spouštíme ho klikem na CTA -->
+    <div class="ts-wrap">
+      <div id="ts-widget"
+        class="cf-turnstile"
+        data-sitekey="0x4AAAAAAB3aoUBtDi_jhPAf"
+        data-size="flexible"
+        data-callback="onTsSuccess"
+        data-error-callback="onTsError"
+        data-timeout-callback="onTsTimeout">
+      </div>
     </div>
+
+    <div class="footer">© 2025 Kristy • <a href="https://link.me/pospichame" target="_blank" rel="noopener">Contact</a></div>
   </div>
 
   <script>
-    let isExecuting = false;
+    let busy = false;
     let lastToken = "";
 
-    const $btn = document.getElementById('goBtn');
+    const $btn = document.getElementById('enterBtn');
     const $msg = document.getElementById('msg');
 
-    function setMsg(text) { $msg.textContent = text; }
-    function setBusy(busy) { $btn.disabled = busy; isExecuting = busy; }
+    function setMsg(t) { $msg.textContent = t || ""; }
+    function setBusy(b) { busy = b; $btn.disabled = b; }
 
+    // CTA → spustíme Turnstile (žádný auto-redirect po loadu stránky)
+    $btn.addEventListener('click', () => {
+      if (busy) return;
+      setBusy(true);
+      setMsg("Ověřuji…");
+      try {
+        if (window.turnstile) {
+          // vždy začneme čistě
+          turnstile.reset("#ts-widget");
+          // pokus o řízené spuštění
+          if (typeof turnstile.execute === "function") {
+            turnstile.execute("#ts-widget");
+          }
+          // pokud execute není dostupné, widget sám zobrazí challenge
+        } else {
+          setBusy(false);
+          setMsg("Ověření není dostupné. Zkus později.");
+        }
+      } catch (e) {
+        setBusy(false);
+        setMsg("Chyba při spuštění ověření.");
+      }
+    });
+
+    // Turnstile callbacks
     window.onTsSuccess = async function(token) {
       lastToken = token || "";
       setMsg("Ověřeno, připravuji vstup…");
@@ -88,7 +141,6 @@ async function serveHtml(env: Env): Promise<Response> {
         if (!res.ok) {
           let data = null; try { data = await res.json(); } catch {}
           setBusy(false);
-          // místo backticků používáme obyčejné stringy
           setMsg((data && data.error) ? ('Server chyba: ' + data.error) : ('Server chyba (' + res.status + ').'));
           if (window.turnstile) turnstile.reset('#ts-widget');
           lastToken = "";
@@ -102,6 +154,7 @@ async function serveHtml(env: Env): Promise<Response> {
           lastToken = "";
           return;
         }
+        // finální krok
         window.location.href = '/go?ticket=' + encodeURIComponent(data.ticket);
       } catch (e) {
         setBusy(false);
@@ -119,20 +172,6 @@ async function serveHtml(env: Env): Promise<Response> {
       setBusy(false);
       setMsg("Čas ověření vypršel. Zkus to znovu.");
     };
-
-    $btn.addEventListener('click', async () => {
-      if (isExecuting) return;
-      setBusy(true);
-      setMsg("Ověřuji…");
-      try {
-        if (window.turnstile) {
-          turnstile.reset('#ts-widget');
-        }
-      } catch (e) {
-        setBusy(false);
-        setMsg("Chyba při spuštění ověření.");
-      }
-    });
   </script>
 </body>
 </html>`;
@@ -147,6 +186,7 @@ async function serveHtml(env: Env): Promise<Response> {
   });
 }
 
+/** ---------- VERIFY / GO (BEZ ZMĚN) ---------- */
 async function verifyHandler(request: Request, env: Env): Promise<Response> {
   if (!env.TURNSTILE_SECRET) return json({ error: "server_misconfig", reason: "TURNSTILE_SECRET missing" }, 500);
   if (!env.SIGNING_SECRET)   return json({ error: "server_misconfig", reason: "SIGNING_SECRET missing" }, 500);
@@ -226,7 +266,7 @@ async function goHandler(url: URL, env: Env): Promise<Response> {
   return new Response(null, { status: 303, headers: { Location: target } });
 }
 
-// -------- utils --------
+/** ---------- utils ---------- */
 function json(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), {
     status,
