@@ -1,8 +1,8 @@
-name = "safelin-worker"
+name = "pospichame"
 main = "src/index.ts"
 compatibility_date = "2024-10-01"
 
 [[kv_namespaces]]
 binding = "TICKETS"
-id = "PASTE_NAMESPACE_ID"
-# preview_id = "PASTE_PREVIEW_NAMESPACE_ID"
+id = "TVUJ_KV_NAMESPACE_ID"   # sem vlož skutečné ID z Cloudflare KV
+# preview_id = "..."          # volitelné, pokud chceš oddělený preview namespace
