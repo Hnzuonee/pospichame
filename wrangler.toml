@@ -4,5 +4,4 @@ compatibility_date = "2024-10-01"
 
 [[kv_namespaces]]
 binding = "TICKETS"
-id = "TVUJ_KV_NAMESPACE_ID"   # sem vlož skutečné ID z Cloudflare KV
-# preview_id = "..."          # volitelné, pokud chceš oddělený preview namespace
+id = "a68011cded084fffa6106b7a55a8156d"
