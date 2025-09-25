@@ -52,7 +52,7 @@ async function serveHero(env: Env): Promise<Response> {
     .note { font-size:12px; opacity:.7; margin-top:8px; }
     .status { margin-top:12px; font-size:14px; min-height:1.2em; }
     .footer { margin-top:28px; opacity:.7; font-size:13px; }
-    /* schovaný widget, ale v DOM (nepoužijeme invisible mode) */
+    /* skrytý widget (ne invis.), jen mimo viewport; čekáme na reset a callback */
     .ts-wrap { position:absolute; left:-9999px; opacity:0; width:0; height:0; overflow:hidden; }
   </style>
   <script defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
@@ -79,7 +79,7 @@ async function serveHero(env: Env): Promise<Response> {
       </div>
     </div>
 
-    <!-- Turnstile widget je přítomen, ale skrytý; spouštíme ho klikem na CTA -->
+    <!-- Turnstile widget je v DOM, ale mimo viewport -->
     <div class="ts-wrap">
       <div id="ts-widget"
         class="cf-turnstile"
@@ -104,20 +104,14 @@ async function serveHero(env: Env): Promise<Response> {
     function setMsg(t) { $msg.textContent = t || ""; }
     function setBusy(b) { busy = b; $btn.disabled = b; }
 
-    // CTA → spustíme Turnstile (žádný auto-redirect po loadu stránky)
+    // CTA → jen resetneme widget a čekáme na callback (žádné execute, ať nevzniká "already executing")
     $btn.addEventListener('click', () => {
       if (busy) return;
       setBusy(true);
       setMsg("Ověřuji…");
       try {
         if (window.turnstile) {
-          // vždy začneme čistě
           turnstile.reset("#ts-widget");
-          // pokus o řízené spuštění
-          if (typeof turnstile.execute === "function") {
-            turnstile.execute("#ts-widget");
-          }
-          // pokud execute není dostupné, widget sám zobrazí challenge
         } else {
           setBusy(false);
           setMsg("Ověření není dostupné. Zkus později.");
@@ -154,7 +148,6 @@ async function serveHero(env: Env): Promise<Response> {
           lastToken = "";
           return;
         }
-        // finální krok
         window.location.href = '/go?ticket=' + encodeURIComponent(data.ticket);
       } catch (e) {
         setBusy(false);
