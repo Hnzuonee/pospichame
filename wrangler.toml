@@ -2,6 +2,9 @@ name = "pospichame"
 main = "src/index.ts"
 compatibility_date = "2024-10-01"
 
+# Statické soubory (např. public/kristy.jpg → https://pospichame.com/kristy.jpg)
+assets = "public"
+
 [[kv_namespaces]]
 binding = "TICKETS"
 id = "a68011cded084fffa6106b7a55a8156d"
