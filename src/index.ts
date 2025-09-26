@@ -61,7 +61,7 @@ function serveHero(): Response {
     .ts-wrap{ position:absolute; left:-9999px; opacity:0; width:0; height:0; overflow:hidden; }
   </style>
   <meta name="robots" content="noindex,nofollow">
-  <script defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+  <script defer src="https://challenges.cloudflare.com/turnstile/v0/api.js" onload="turnstileReady()"></script>
 </head>
 <body>
   <div class="wrap">
@@ -77,7 +77,7 @@ function serveHero(): Response {
             <span class="tag">Blond</span><span class="tag">Modré oči</span><span class="tag">23 let</span><span class="tag">CZ</span>
           </div>
           <div class="cta">
-            <button id="enterBtn">Pokračovat na osobní stránku (18+)</button>
+            <button id="enterBtn" disabled>Pokračovat na osobní stránku (18+)</button>
             <div id="msg" class="status"></div>
           </div>
         </div>
@@ -110,8 +110,16 @@ function serveHero(): Response {
     const WIDGET_ID = "#ts-widget";
     let isProcessing = false;
 
+    // Tato funkce se zavolá, až bude Turnstile skript načtený a připravený
+    window.turnstileReady = function () {
+      // Odblokujeme tlačítko a změníme text
+      btn.disabled = false;
+      setStatus("Připraveno k ověření");
+    };
+
     const setStatus = (text = "", busy = false) => {
       msg.textContent = text;
+      // Tlačítko se zablokuje, jen když probíhá zpracování
       btn.disabled = busy;
       isProcessing = busy;
     };
@@ -168,16 +176,15 @@ function serveHero(): Response {
       if (isProcessing) return;
       setStatus("Ověřuji…", true);
 
-      if (typeof window.turnstile?.execute !== 'function') {
-        return handleError("Ověření není dostupné, zkuste to později.");
-      }
-
       try {
         turnstile.execute(WIDGET_ID);
       } catch (e) {
         handleError("Chyba při spuštění ověření.");
       }
     });
+
+    // Nastavíme počáteční stav
+    setStatus("Načítám ověření…");
   </script>
 </body>
 </html>`;
