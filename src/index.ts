@@ -6,7 +6,7 @@ export interface Env {
 }
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -26,7 +26,7 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 
-/* ---------- HERO (PG-13) – můžeš později nahradit assetem/public/index.html ---------- */
+/* ---------- HERO (PG-13) ---------- */
 function serveHero(): Response {
   const html = `<!doctype html>
 <html lang="cs">
@@ -40,6 +40,8 @@ function serveHero(): Response {
            background:linear-gradient(-45deg,#0d0d1a,#1a0d1a,#0d1a1a,#0d0d1a); background-size:400% 400%; animation:bg 20s ease infinite; }
     @keyframes bg { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
     .wrap { max-width: 720px; margin: 0 auto; }
+    .card { background:rgba(26,26,41,.7); backdrop-filter:blur(15px); border:1px solid rgba(255,255,255,.1);
+            border-radius:24px; padding:28px; box-shadow:0 8px 32px rgba(0,0,0,.37); margin-bottom:30px; }
     .hero { display:flex; gap:24px; align-items:center; flex-wrap:wrap; }
     .hero img { width:220px; height:auto; border-radius:18px; object-fit:cover; box-shadow:0 4px 24px rgba(0,0,0,.08); border:4px solid #f900ff; }
     h1 { margin:0 0 6px; font-size:32px; font-weight:900 }
@@ -53,8 +55,6 @@ function serveHero(): Response {
                   letter-spacing:1.1px; text-transform:uppercase; font-weight:700 }
     .cta button:disabled{opacity:.7; cursor:not-allowed}
     .status { margin-top:10px; font-size:13px; opacity:.8; min-height:1.2em }
-    .card { background:rgba(26,26,41,.7); backdrop-filter:blur(15px); border:1px solid rgba(255,255,255,.1);
-            border-radius:24px; padding:28px; box-shadow:0 8px 32px rgba(0,0,0,.37); margin-bottom:30px; }
     .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
     .gallery img{width:100%;height:220px;object-fit:cover;border-radius:16px}
     .footer{ text-align:center; padding:18px 0; font-size:.9rem; opacity:.65}
@@ -67,7 +67,7 @@ function serveHero(): Response {
   <div class="wrap">
     <section class="card">
       <div class="hero">
-        <img src="/kristy.jpg" alt="Kristy" onerror="this.style.display='none'">
+        <img src="/hero.jpg" alt="Kristy" onerror="this.style.display='none'">
         <div>
           <h1>Kristy</h1>
           <p class="sub">Official Page • Lifestyle & Fitness</p>
@@ -95,7 +95,7 @@ function serveHero(): Response {
 
   <footer class="footer">© 2025 Kristy • Vstupem potvrzuješ, že je ti 18+</footer>
 
-  <!-- skrytý widget Turnstile v DOM (ne invisible), čekáme na reset a callback -->
+  <!-- skrytý widget Turnstile (viditelný režim, mimo viewport) -->
   <div class="ts-wrap">
     <div id="ts-widget" class="cf-turnstile"
          data-sitekey="0x4AAAAAAB3aoUBtDi_jhPAf"
@@ -106,28 +106,34 @@ function serveHero(): Response {
   </div>
 
   <script>
-    let busy=false, token="";
+    let busy=false, running=false, token="";
     const $btn=document.getElementById('enterBtn'), $msg=document.getElementById('msg');
+    const WID = "#ts-widget";
     function setMsg(t){ $msg.textContent=t||"" } function setBusy(b){ busy=b; $btn.disabled=b }
 
-    $btn.addEventListener('click', ()=>{ if(busy) return; setBusy(true); setMsg("Ověřuji…");
-      try{ if(window.turnstile){ turnstile.reset("#ts-widget"); } else { setBusy(false); setMsg("Ověření není dostupné. Zkus později."); } }
-      catch(e){ setBusy(false); setMsg("Chyba při spuštění ověření."); }
+    $btn.addEventListener('click', ()=>{ if(busy||running) return; setBusy(true); setMsg("Ověřuji…");
+      try{
+        if(!window.turnstile){ setBusy(false); return setMsg("Ověření není dostupné. Zkus později."); }
+        running = true;
+        turnstile.reset(WID);
+        try{ if(typeof turnstile.execute==="function") turnstile.execute(WID); }catch{}
+      }catch(e){ running=false; setBusy(false); setMsg("Chyba při spuštění ověření."); }
     });
 
     window.onTsSuccess = async function(tok){
-      token=tok||""; setMsg("Ověřeno, připravuji vstup…");
+      token = tok || ""; setMsg("Ověřeno, připravuji vstup…");
       try{
         const res = await fetch('/v', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ t: token })});
-        if(!res.ok){ let d=null; try{ d=await res.json() }catch{}; setBusy(false);
-          setMsg(d&&d.error?('Server: '+d.error):('Server chyba ('+res.status+')')); if(window.turnstile) turnstile.reset('#ts-widget'); token=""; return; }
-        const d = await res.json();
-        const ticket = d?.k || d?.ticket; if(!ticket){ setBusy(false); setMsg("Chybí ticket. Zkus to znovu."); if(window.turnstile) turnstile.reset('#ts-widget'); token=""; return; }
-        window.location.href = '/g?ticket='+encodeURIComponent(ticket);
-      }catch(e){ setBusy(false); setMsg("Síťová chyba. Zkus to znovu."); if(window.turnstile) turnstile.reset('#ts-widget'); token=""; }
+        if(!res.ok){ let d=null; try{ d=await res.json(); }catch{}; running=false; setBusy(false);
+          setMsg(d&&d.error?('Server: '+d.error):('Server chyba ('+res.status+')'));
+          try{ turnstile.reset(WID); }catch{} token=""; return; }
+        const d = await res.json(); const k = d?.k || d?.ticket;
+        if(!k){ running=false; setBusy(false); setMsg("Chybí ticket. Zkus to znovu."); try{turnstile.reset(WID);}catch{} token=""; return; }
+        window.location.href = '/g?ticket='+encodeURIComponent(k);
+      }catch(e){ running=false; setBusy(false); setMsg("Síťová chyba. Zkus to znovu."); try{turnstile.reset(WID);}catch{} token=""; }
     };
-    window.onTsError = function(){ setBusy(false); setMsg("Chyba ověření. Zkus to prosím znovu."); }
-    window.onTsTimeout = function(){ setBusy(false); setMsg("Čas ověření vypršel. Zkus to znovu."); }
+    window.onTsError   = function(){ running=false; setBusy(false); setMsg("Chyba ověření. Zkus to prosím znovu."); };
+    window.onTsTimeout = function(){ running=false; setBusy(false); setMsg("Čas ověření vypršel. Zkus to znovu."); };
   </script>
 </body>
 </html>`;
@@ -163,7 +169,7 @@ async function verifyHandler(request: Request, env: Env): Promise<Response> {
   try {
     const ver = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
     res = await ver.json();
-  } catch (e) {
+  } catch {
     return json({ error: "verify_request_failed" }, 502);
   }
 
@@ -189,8 +195,9 @@ async function verifyHandler(request: Request, env: Env): Promise<Response> {
     return json({ error: "kv_put_failed" }, 500);
   }
 
-  // kompatibilita: vrátím nové pole `k` i staré `ticket`
-  return json({ k: `${id}.${issuedAt}.${ttl}.${sig}`, ticket: `${id}.${issuedAt}.${ttl}.${sig}` }, 200);
+  // nové pole `k` + staré `ticket` (kompatibilita)
+  const ticket = `${id}.${issuedAt}.${ttl}.${sig}`;
+  return json({ k: ticket, ticket }, 200);
 }
 
 async function goHandler(url: URL, env: Env): Promise<Response> {
