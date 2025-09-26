@@ -1,12 +1,5 @@
-export interface Env {
-  TICKETS: KVNamespace;
-  TURNSTILE_SECRET: string;
-  SIGNING_SECRET: string;
-  TARGET_URL: string;
-}
-
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -21,18 +14,17 @@ export default {
       return new Response("ok", { status: 200 });
     }
 
-    // Cloudflare automaticky servíruje statické soubory z `public` složky
-    // díky nastavení v `wrangler.toml`. Pokud soubor nenajde, vrátí 404.
-    // Tento fallback je pro případy, kdy by statický asset server selhal.
+    // Pokud se nenašla žádná API cesta, Cloudflare se pokusí doručit
+    // statický soubor ze složky 'public'. Pokud ani ten nenajde, vrátí 404.
+    // Tuto odpověď uvidí uživatel, jen pokud statický soubor neexistuje.
     return new Response("Not found.", { status: 404 });
   },
-} satisfies ExportedHandler<Env>;
+};
 
-
-async function verifyHandler(request: Request, env: Env): Promise<Response> {
-  if (!env.TURNSTILE_SECRET) return json({ error: "server_misconfig", reason: "TURNSTILE_SECRET missing" }, 500);
-  if (!env.SIGNING_SECRET)   return json({ error: "server_misconfig", reason: "SIGNING_SECRET missing" }, 500);
-  if (!env.TICKETS || !env.TICKETS.put) return json({ error: "server_misconfig", reason: "KV binding TICKETS missing" }, 500);
+async function verifyHandler(request, env) {
+  if (!env.TURNSTILE_SECRET || !env.SIGNING_SECRET || !env.TICKETS) {
+    return json({ error: "server_misconfig" }, 500);
+  }
 
   const body = await safeJson(request);
   const token = (body && (body.t || body.token)) || "";
@@ -44,7 +36,7 @@ async function verifyHandler(request: Request, env: Env): Promise<Response> {
   const ip = request.headers.get("cf-connecting-ip") || "";
   if (ip) form.append("remoteip", ip);
 
-  let res:any;
+  let res;
   try {
     const ver = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
     res = await ver.json();
@@ -53,81 +45,75 @@ async function verifyHandler(request: Request, env: Env): Promise<Response> {
   }
 
   if (!res?.success) {
-    return json({ error: "verification_failed", codes: res["error-codes"] || null, hostname: res.hostname || null }, 403);
+    return json({ error: "verification_failed", codes: res["error-codes"] || null }, 403);
   }
 
   const id = cryptoRandomId();
   const ttl = 60;
-  const issuedAt = Math.floor(Date.now()/1000);
+  const issuedAt = Math.floor(Date.now() / 1000);
   const payload = `${id}.${issuedAt}.${ttl}`;
-  let sig: string;
+  let sig;
   try {
     sig = await hmac(env.SIGNING_SECRET, payload);
-  } catch {
+  } catch (e) {
     return json({ error: "signing_failed" }, 500);
   }
 
-  try {
-    await env.TICKETS.put(`t:${id}`, "1", { expirationTtl: ttl });
-  } catch {
-    return json({ error: "kv_put_failed" }, 500);
-  }
+  await env.TICKETS.put(`t:${id}`, "1", { expirationTtl: ttl });
 
   const ticket = `${id}.${issuedAt}.${ttl}.${sig}`;
-  return json({ k: ticket }, 200);
+  return json({ k: ticket });
 }
 
-async function goHandler(url: URL, env: Env): Promise<Response> {
+async function goHandler(url, env) {
+    if (!env.SIGNING_SECRET || !env.TARGET_URL || !env.TICKETS) {
+        return json({ error: "server_misconfig" }, 500);
+    }
+
   const ticket = url.searchParams.get("ticket") || "";
   const parts = ticket.split(".");
   if (parts.length !== 4) return json({ error: "bad ticket" }, 400);
 
   const [id, issuedAtStr, ttlStr, sig] = parts;
   const payload = `${id}.${issuedAtStr}.${ttlStr}`;
-  let expectSig: string;
+  let expectSig;
   try {
     expectSig = await hmac(env.SIGNING_SECRET, payload);
-  } catch {
+  } catch (e) {
     return json({ error: "signing_failed" }, 500);
   }
   if (sig !== expectSig) return json({ error: "bad signature" }, 403);
 
   const issuedAt = Number(issuedAtStr) | 0;
   const ttl = Number(ttlStr) | 0;
-  const now = Math.floor(Date.now()/1000);
+  const now = Math.floor(Date.now() / 1000);
   if (!issuedAt || !ttl || now > issuedAt + ttl) return json({ error: "expired" }, 403);
 
   const key = `t:${id}`;
-  try {
-    const exists = await env.TICKETS.get(key);
-    if (!exists) return json({ error: "already used or unknown" }, 403);
-    await env.TICKETS.delete(key);
-  } catch {
-    return json({ error: "kv_access_failed" }, 500);
-  }
+  const exists = await env.TICKETS.get(key);
+  if (!exists) return json({ error: "already used or unknown" }, 403);
+  
+  await env.TICKETS.delete(key);
 
-  const target = env.TARGET_URL || "";
-  if (!target) return json({ error: "no target configured" }, 500);
-
-  return new Response(null, { status: 303, headers: { Location: target } });
+  return new Response(null, { status: 303, headers: { Location: env.TARGET_URL } });
 }
 
 /* ---------- UTILS ---------- */
-function json(obj: unknown, status = 200): Response {
+function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), {
     status,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
-async function safeJson(request: Request): Promise<any | null> {
+async function safeJson(request) {
   try { return await request.json(); } catch { return null; }
 }
-function cryptoRandomId(): string {
+function cryptoRandomId() {
   const a = new Uint8Array(16);
   crypto.getRandomValues(a);
   return [...a].map(x => x.toString(16).padStart(2, "0")).join("");
 }
-async function hmac(secret: string, msg: string): Promise<string> {
+async function hmac(secret, msg) {
   const key = await crypto.subtle.importKey(
     "raw", new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
