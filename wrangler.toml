@@ -8,3 +8,6 @@ directory = "public"
 [[kv_namespaces]]
 binding = "TICKETS"
 id = "a68011cded084fffa6106b7a55a8156d"
+
+[observability.logs]
+enabled = true
