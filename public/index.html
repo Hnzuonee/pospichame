@@ -12,52 +12,27 @@
   <meta name="robots" content="noindex,nofollow">
   <style>
     :root {
-      --background-color: #0d0d1a;
-      --primary-pink: #f900ff;
-      --primary-cyan: #00f2ff;
-      --text: #f0f0f0;
-      --surface: rgba(26,26,41,.7);
+      --background-color: #0d0d1a; --primary-pink: #f900ff; --primary-cyan: #00f2ff;
+      --text: #f0f0f0; --surface: rgba(26,26,41,.7);
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
-      color: var(--text);
+      margin: 0; font-family: 'Poppins', sans-serif; color: var(--text);
       background: linear-gradient(-45deg, #0d0d1a, #1a0d1a, #0d1a1a, #0d0d1a);
-      background-size: 400% 400%;
-      animation: bg 20s ease infinite;
-      line-height: 1.7;
+      background-size: 400% 400%; animation: bg 20s ease infinite; line-height: 1.7;
     }
     @keyframes bg { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
     .container { max-width: 980px; margin: 0 auto; padding: 40px 20px; }
     .card {
-      background: var(--surface);
-      backdrop-filter: blur(15px);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 24px;
-      padding: 32px;
-      box-shadow: 0 8px 32px rgba(0,0,0,.37);
-      margin-bottom: 30px;
+      background: var(--surface); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 24px; padding: 32px; box-shadow: 0 8px 32px rgba(0,0,0,.37); margin-bottom: 30px;
     }
-    .hero {
-      display: flex; /* Změna na Flexbox */
-      flex-wrap: wrap; /* Umožní zalamování na menších obrazovkách */
-      gap: 32px;
-      align-items: center;
-      justify-content: center; /* Centrovaní pro mobilní zobrazení */
-    }
+    .hero { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; justify-content: center; }
     .hero-img {
-      width: 180px;
-      height: 180px;
-      object-fit: cover;
-      border-radius: 18px;
-      border: 4px solid var(--primary-pink);
-      flex-shrink: 0; /* Zabrání zmenšování obrázku */
+      width: 180px; height: 180px; object-fit: cover; border-radius: 18px;
+      border: 4px solid var(--primary-pink); flex-shrink: 0;
     }
-    .hero-text {
-        flex-grow: 1; /* Text zabere zbytek místa */
-        min-width: 300px; /* Zajistí, že se text nezlomí příliš brzy */
-    }
+    .hero-text { flex-grow: 1; min-width: 300px; }
     h1 { font-size: 2.4rem; font-weight: 900; margin: 0 0 6px; }
     .sub { opacity: .85; margin: 0 0 12px; }
     .bio { opacity: .95; margin: 8px 0 16px; }
@@ -76,11 +51,8 @@
     .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
     .gallery img { width: 100%; height: 220px; object-fit: cover; border-radius: 16px; }
     .footer { text-align: center; padding: 20px 0; font-size: .9rem; opacity: .6; }
-
     @media(max-width: 600px) {
-      .hero { text-align: center; }
-      .tags { justify-content: center; }
-      .cta-wrap { text-align: center; }
+      .hero { text-align: center; } .tags { justify-content: center; } .cta-wrap { text-align: center; }
     }
   </style>
 </head>
@@ -92,14 +64,15 @@
         <div class="hero-text">
           <h1>Kristy</h1>
           <p class="sub">Official Page • Lifestyle &amp; Fitness</p>
-          <p class="bio">Ahoj, jsem Kristy. Konečne jsi našel, co hledáš. Stačí jeden klik a jsem jen tvoje❤️</p>
+          <p class="bio">Ahoj, jsem Kristy. Konečně jsi našel, co hledáš. Stačí jeden klik a jsem jen tvoje❤️</p>
           <div class="tags">
-            <span class="tag">Výška 159&nbsp;cm</span><span class="tag">Váha 44&nbsp;kg</span><span class="tag">Míry 76–45–76</span>
-            <span class="tag">Blond</span><span class="tag">Modré oči</span><span class="tag">23&nbsp;let</span><span class="tag">CZ</span>
+            <span class="tag">Výška 153&nbsp;cm</span><span class="tag">Váha 44&nbsp;kg</span><span class="tag">Míry 76–45–76</span>
+            <span class="tag">Blond</span><span class="tag">Modré oči</span><span class="tag">21&nbsp;let</span><span class="tag">CZ</span>
           </div>
           <div class="cta-wrap">
             <button id="cta" class="cta" disabled>Načítám ověření...</button>
             <div id="msg" class="note"></div>
+            <div id="turnstile-container"></div>
           </div>
         </div>
       </div>
@@ -115,10 +88,10 @@
   </div>
 
   <footer class="footer">
-    © 2025 Kristy • Vstupem potvrzuješ, že jsi dospšlý
+    © 2025 Kristy • Vstupem potvrzuješ, že jsi dospělý
   </footer>
 
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=turnstileReady" defer></script>
   <script src="/s.js" defer></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=turnstileReady" defer></script>
 </body>
 </html>
