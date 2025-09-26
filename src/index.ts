@@ -10,16 +10,15 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    if (path === "/" && request.method === "GET") {
-      return serveHero(env);
-    }
-    if (path === "/health" && request.method === "GET") {
-      return new Response("ok", { status: 200 });
-    }
-    if (path === "/verify" && request.method === "POST") {
+    // ---- PAGES ----
+    if (request.method === "GET" && path === "/") return serveHero();
+    if (request.method === "GET" && path === "/health") return new Response("ok", { status: 200 });
+
+    // ---- API (kratké aliasy + zpětná kompatibilita) ----
+    if (request.method === "POST" && (path === "/v" || path === "/verify")) {
       return verifyHandler(request, env);
     }
-    if (path === "/go" && request.method === "GET") {
+    if (request.method === "GET" && (path === "/g" || path === "/go")) {
       return goHandler(url, env);
     }
 
@@ -27,8 +26,8 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 
-/** ---------- HERO LANDING (PG-13) ---------- */
-async function serveHero(env: Env): Promise<Response> {
+/* ---------- HERO (PG-13) – můžeš později nahradit assetem/public/index.html ---------- */
+function serveHero(): Response {
   const html = `<!doctype html>
 <html lang="cs">
 <head>
@@ -37,134 +36,98 @@ async function serveHero(env: Env): Promise<Response> {
   <title>Kristy — Official Page</title>
   <style>
     :root { color-scheme: light dark; }
-    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin:0; padding:24px; }
+    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin:0; padding:24px; color:#f0f0f0;
+           background:linear-gradient(-45deg,#0d0d1a,#1a0d1a,#0d1a1a,#0d0d1a); background-size:400% 400%; animation:bg 20s ease infinite; }
+    @keyframes bg { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
     .wrap { max-width: 720px; margin: 0 auto; }
     .hero { display:flex; gap:24px; align-items:center; flex-wrap:wrap; }
-    .hero img { width: 220px; height:auto; border-radius:18px; object-fit:cover; box-shadow:0 4px 24px rgba(0,0,0,.08); }
-    .hgroup h1 { margin:0 0 6px; font-size:32px; }
-    .hgroup p.sub { margin:0 0 12px; opacity:.8 }
-    .bio { margin: 8px 0 16px; line-height:1.5; }
-    .links { display:flex; gap:12px; flex-wrap:wrap; margin:14px 0 20px; }
-    .links a { text-decoration:none; padding:10px 14px; border-radius:12px; border:1px solid rgba(0,0,0,.12); }
-    .cta { margin-top: 4px; }
-    .cta button { padding:14px 18px; border-radius:12px; border:0; font-size:16px; cursor:pointer; }
-    .cta button:disabled { opacity:.6; cursor:not-allowed; }
-    .note { font-size:12px; opacity:.7; margin-top:8px; }
-    .status { margin-top:12px; font-size:14px; min-height:1.2em; }
-    .footer { margin-top:28px; opacity:.7; font-size:13px; }
-    /* skrytý widget (ne invis.), jen mimo viewport; čekáme na reset a callback */
-    .ts-wrap { position:absolute; left:-9999px; opacity:0; width:0; height:0; overflow:hidden; }
+    .hero img { width:220px; height:auto; border-radius:18px; object-fit:cover; box-shadow:0 4px 24px rgba(0,0,0,.08); border:4px solid #f900ff; }
+    h1 { margin:0 0 6px; font-size:32px; font-weight:900 }
+    .sub { margin:0 0 12px; opacity:.85 }
+    .bio { margin: 8px 0 16px; line-height:1.5; opacity:.95 }
+    .tags{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 22px}
+    .tag{font-size:.9rem;padding:6px 10px;border:1px solid rgba(255,255,255,.15);border-radius:12px;opacity:.9}
+    .cta { margin-top: 6px; }
+    .cta button { padding:14px 18px; border-radius:50px; border:0; font-size:16px; cursor:pointer;
+                  color:#fff; background:linear-gradient(-45deg,#f900ff,#00f2ff); background-size:200% 200%; animation:bg 8s ease infinite;
+                  letter-spacing:1.1px; text-transform:uppercase; font-weight:700 }
+    .cta button:disabled{opacity:.7; cursor:not-allowed}
+    .status { margin-top:10px; font-size:13px; opacity:.8; min-height:1.2em }
+    .card { background:rgba(26,26,41,.7); backdrop-filter:blur(15px); border:1px solid rgba(255,255,255,.1);
+            border-radius:24px; padding:28px; box-shadow:0 8px 32px rgba(0,0,0,.37); margin-bottom:30px; }
+    .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+    .gallery img{width:100%;height:220px;object-fit:cover;border-radius:16px}
+    .footer{ text-align:center; padding:18px 0; font-size:.9rem; opacity:.65}
+    .ts-wrap{ position:absolute; left:-9999px; opacity:0; width:0; height:0; overflow:hidden; }
   </style>
-  <script defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
   <meta name="robots" content="noindex,nofollow">
+  <script defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
 </head>
 <body>
   <div class="wrap">
-    <div class="hero">
-      <img src="/kristy.jpg" alt="Kristy" onerror="this.style.display='none'">
-      <div class="hgroup">
-        <h1>Kristy</h1>
-        <p class="sub">Official Page • Lifestyle & Fitness</p>
-        <p class="bio">Ahoj, jsem Kristy. Miluju cestování, fitness a sdílení momentů ze svého života. Níže najdeš moje oficiální odkazy a možnost pokračovat na 18+ obsah mimo Instagram.</p>
-        <div class="links">
-          <a href="https://link.me/pospichame" target="_blank" rel="noopener">TikTok</a>
-          <a href="https://link.me/pospichame" target="_blank" rel="noopener">YouTube</a>
-          <a href="https://link.me/pospichame" target="_blank" rel="noopener">Instagram</a>
-        </div>
-        <div class="cta">
-          <button id="enterBtn">Pokračovat na 18+ obsah</button>
-          <div class="note">Pokračováním potvrzuješ, že je ti 18+.</div>
-          <div id="msg" class="status"></div>
+    <section class="card">
+      <div class="hero">
+        <img src="/kristy.jpg" alt="Kristy" onerror="this.style.display='none'">
+        <div>
+          <h1>Kristy</h1>
+          <p class="sub">Official Page • Lifestyle & Fitness</p>
+          <p class="bio">Ahoj, jsem Kristy. Miluju cestování, fitness a sdílení momentů ze svého života. Níže najdeš moje oficiální odkazy a možnost pokračovat na 18+ obsah.</p>
+          <div class="tags">
+            <span class="tag">Výška 169 cm</span><span class="tag">Váha 52 kg</span><span class="tag">Míry 86–60–90</span>
+            <span class="tag">Blond</span><span class="tag">Modré oči</span><span class="tag">23 let</span><span class="tag">CZ</span>
+          </div>
+          <div class="cta">
+            <button id="enterBtn">Pokračovat na osobní stránku (18+)</button>
+            <div id="msg" class="status"></div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Turnstile widget je v DOM, ale mimo viewport -->
-    <div class="ts-wrap">
-      <div id="ts-widget"
-        class="cf-turnstile"
-        data-sitekey="0x4AAAAAAB3aoUBtDi_jhPAf"
-        data-size="flexible"
-        data-callback="onTsSuccess"
-        data-error-callback="onTsError"
-        data-timeout-callback="onTsTimeout">
+    <section class="card">
+      <div class="gallery">
+        <img src="/g1.jpg" alt="Galerie 1" onerror="this.style.display='none'">
+        <img src="/g2.jpg" alt="Galerie 2" onerror="this.style.display='none'">
+        <img src="/g3.jpg" alt="Galerie 3" onerror="this.style.display='none'">
       </div>
-    </div>
+    </section>
+  </div>
 
-    <div class="footer">© 2025 Kristy • <a href="https://link.me/pospichame" target="_blank" rel="noopener">Contact</a></div>
+  <footer class="footer">© 2025 Kristy • Vstupem potvrzuješ, že je ti 18+</footer>
+
+  <!-- skrytý widget Turnstile v DOM (ne invisible), čekáme na reset a callback -->
+  <div class="ts-wrap">
+    <div id="ts-widget" class="cf-turnstile"
+         data-sitekey="0x4AAAAAAB3aoUBtDi_jhPAf"
+         data-size="flexible"
+         data-callback="onTsSuccess"
+         data-error-callback="onTsError"
+         data-timeout-callback="onTsTimeout"></div>
   </div>
 
   <script>
-    let busy = false;
-    let lastToken = "";
+    let busy=false, token="";
+    const $btn=document.getElementById('enterBtn'), $msg=document.getElementById('msg');
+    function setMsg(t){ $msg.textContent=t||"" } function setBusy(b){ busy=b; $btn.disabled=b }
 
-    const $btn = document.getElementById('enterBtn');
-    const $msg = document.getElementById('msg');
-
-    function setMsg(t) { $msg.textContent = t || ""; }
-    function setBusy(b) { busy = b; $btn.disabled = b; }
-
-    // CTA → jen resetneme widget a čekáme na callback (žádné execute, ať nevzniká "already executing")
-    $btn.addEventListener('click', () => {
-      if (busy) return;
-      setBusy(true);
-      setMsg("Ověřuji…");
-      try {
-        if (window.turnstile) {
-          turnstile.reset("#ts-widget");
-        } else {
-          setBusy(false);
-          setMsg("Ověření není dostupné. Zkus později.");
-        }
-      } catch (e) {
-        setBusy(false);
-        setMsg("Chyba při spuštění ověření.");
-      }
+    $btn.addEventListener('click', ()=>{ if(busy) return; setBusy(true); setMsg("Ověřuji…");
+      try{ if(window.turnstile){ turnstile.reset("#ts-widget"); } else { setBusy(false); setMsg("Ověření není dostupné. Zkus později."); } }
+      catch(e){ setBusy(false); setMsg("Chyba při spuštění ověření."); }
     });
 
-    // Turnstile callbacks
-    window.onTsSuccess = async function(token) {
-      lastToken = token || "";
-      setMsg("Ověřeno, připravuji vstup…");
-      try {
-        const res = await fetch('/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: lastToken })
-        });
-        if (!res.ok) {
-          let data = null; try { data = await res.json(); } catch {}
-          setBusy(false);
-          setMsg((data && data.error) ? ('Server chyba: ' + data.error) : ('Server chyba (' + res.status + ').'));
-          if (window.turnstile) turnstile.reset('#ts-widget');
-          lastToken = "";
-          return;
-        }
-        const data = await res.json();
-        if (!data || !data.ticket) {
-          setBusy(false);
-          setMsg("Chybí ticket. Zkus to znovu.");
-          if (window.turnstile) turnstile.reset('#ts-widget');
-          lastToken = "";
-          return;
-        }
-        window.location.href = '/go?ticket=' + encodeURIComponent(data.ticket);
-      } catch (e) {
-        setBusy(false);
-        setMsg("Síťová chyba. Zkus to znovu.");
-        if (window.turnstile) turnstile.reset('#ts-widget');
-        lastToken = "";
-      }
+    window.onTsSuccess = async function(tok){
+      token=tok||""; setMsg("Ověřeno, připravuji vstup…");
+      try{
+        const res = await fetch('/v', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ t: token })});
+        if(!res.ok){ let d=null; try{ d=await res.json() }catch{}; setBusy(false);
+          setMsg(d&&d.error?('Server: '+d.error):('Server chyba ('+res.status+')')); if(window.turnstile) turnstile.reset('#ts-widget'); token=""; return; }
+        const d = await res.json();
+        const ticket = d?.k || d?.ticket; if(!ticket){ setBusy(false); setMsg("Chybí ticket. Zkus to znovu."); if(window.turnstile) turnstile.reset('#ts-widget'); token=""; return; }
+        window.location.href = '/g?ticket='+encodeURIComponent(ticket);
+      }catch(e){ setBusy(false); setMsg("Síťová chyba. Zkus to znovu."); if(window.turnstile) turnstile.reset('#ts-widget'); token=""; }
     };
-
-    window.onTsError = function() {
-      setBusy(false);
-      setMsg("Chyba ověření. Zkus to prosím znovu.");
-    };
-    window.onTsTimeout = function() {
-      setBusy(false);
-      setMsg("Čas ověření vypršel. Zkus to znovu.");
-    };
+    window.onTsError = function(){ setBusy(false); setMsg("Chyba ověření. Zkus to prosím znovu."); }
+    window.onTsTimeout = function(){ setBusy(false); setMsg("Čas ověření vypršel. Zkus to znovu."); }
   </script>
 </body>
 </html>`;
@@ -179,58 +142,55 @@ async function serveHero(env: Env): Promise<Response> {
   });
 }
 
-/** ---------- VERIFY / GO (BEZ ZMĚN) ---------- */
+/* ---------- VERIFY / GO (aliasy /v,/g + kompatibilita) ---------- */
 async function verifyHandler(request: Request, env: Env): Promise<Response> {
   if (!env.TURNSTILE_SECRET) return json({ error: "server_misconfig", reason: "TURNSTILE_SECRET missing" }, 500);
   if (!env.SIGNING_SECRET)   return json({ error: "server_misconfig", reason: "SIGNING_SECRET missing" }, 500);
   if (!env.TICKETS || !env.TICKETS.put) return json({ error: "server_misconfig", reason: "KV binding TICKETS missing" }, 500);
 
   const body = await safeJson(request);
-  if (!body?.token) return json({ error: "missing token" }, 400);
+  const token = (body && (body.t || body.token)) || "";
+  if (!token) return json({ error: "missing token" }, 400);
 
+  // Turnstile verify
   const form = new URLSearchParams();
   form.append("secret", env.TURNSTILE_SECRET);
-  form.append("response", body.token);
+  form.append("response", token);
   const ip = request.headers.get("cf-connecting-ip") || "";
   if (ip) form.append("remoteip", ip);
 
-  let res: any;
+  let res:any;
   try {
-    const ver = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      body: form
-    });
+    const ver = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
     res = await ver.json();
   } catch (e) {
-    return json({ error: "verify_request_failed", detail: String(e) }, 502);
+    return json({ error: "verify_request_failed" }, 502);
   }
 
   if (!res?.success) {
-    return json({
-      error: "verification_failed",
-      codes: res["error-codes"] || null,
-      hostname: res.hostname || null
-    }, 403);
+    return json({ error: "verification_failed", codes: res["error-codes"] || null, hostname: res.hostname || null }, 403);
   }
 
+  // ticket (one-time, TTL)
   const id = cryptoRandomId();
   const ttl = 60;
-  const issuedAt = Math.floor(Date.now() / 1000);
+  const issuedAt = Math.floor(Date.now()/1000);
   const payload = `${id}.${issuedAt}.${ttl}`;
   let sig: string;
   try {
     sig = await hmac(env.SIGNING_SECRET, payload);
-  } catch (e) {
-    return json({ error: "signing_failed", detail: String(e) }, 500);
+  } catch {
+    return json({ error: "signing_failed" }, 500);
   }
 
   try {
     await env.TICKETS.put(`t:${id}`, "1", { expirationTtl: ttl });
-  } catch (e) {
-    return json({ error: "kv_put_failed", detail: String(e) }, 500);
+  } catch {
+    return json({ error: "kv_put_failed" }, 500);
   }
 
-  return json({ ticket: `${id}.${issuedAt}.${ttl}.${sig}` }, 200);
+  // kompatibilita: vrátím nové pole `k` i staré `ticket`
+  return json({ k: `${id}.${issuedAt}.${ttl}.${sig}`, ticket: `${id}.${issuedAt}.${ttl}.${sig}` }, 200);
 }
 
 async function goHandler(url: URL, env: Env): Promise<Response> {
@@ -245,7 +205,7 @@ async function goHandler(url: URL, env: Env): Promise<Response> {
 
   const issuedAt = Number(issuedAtStr) | 0;
   const ttl = Number(ttlStr) | 0;
-  const now = Math.floor(Date.now() / 1000);
+  const now = Math.floor(Date.now()/1000);
   if (!issuedAt || !ttl || now > issuedAt + ttl) return json({ error: "expired" }, 403);
 
   const key = `t:${id}`;
@@ -259,7 +219,7 @@ async function goHandler(url: URL, env: Env): Promise<Response> {
   return new Response(null, { status: 303, headers: { Location: target } });
 }
 
-/** ---------- utils ---------- */
+/* ---------- utils ---------- */
 function json(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), {
     status,
