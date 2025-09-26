@@ -14,9 +14,8 @@ export default {
       return new Response("ok", { status: 200 });
     }
 
-    // Pokud se nenašla žádná API cesta, Cloudflare se pokusí doručit
-    // statický soubor ze složky 'public'. Pokud ani ten nenajde, vrátí 404.
-    // Tuto odpověď uvidí uživatel, jen pokud statický soubor neexistuje.
+    // Pokud se nenajde žádná API cesta, Cloudflare se pokusí doručit
+    // statický soubor. Pokud soubor nenajde, vrátí 404.
     return new Response("Not found.", { status: 404 });
   },
 };
@@ -28,7 +27,7 @@ async function verifyHandler(request, env) {
 
   const body = await safeJson(request);
   const token = (body && (body.t || body.token)) || "";
-  if (!token) return json({ error: "missing token" }, 400);
+  if (!token) return json({ error: "missing_token" }, 400);
 
   const form = new URLSearchParams();
   form.append("secret", env.TURNSTILE_SECRET);
@@ -49,7 +48,7 @@ async function verifyHandler(request, env) {
   }
 
   const id = cryptoRandomId();
-  const ttl = 60;
+  const ttl = 60; // 60 sekund
   const issuedAt = Math.floor(Date.now() / 1000);
   const payload = `${id}.${issuedAt}.${ttl}`;
   let sig;
@@ -72,7 +71,7 @@ async function goHandler(url, env) {
 
   const ticket = url.searchParams.get("ticket") || "";
   const parts = ticket.split(".");
-  if (parts.length !== 4) return json({ error: "bad ticket" }, 400);
+  if (parts.length !== 4) return json({ error: "bad_ticket" }, 400);
 
   const [id, issuedAtStr, ttlStr, sig] = parts;
   const payload = `${id}.${issuedAtStr}.${ttlStr}`;
@@ -82,7 +81,7 @@ async function goHandler(url, env) {
   } catch (e) {
     return json({ error: "signing_failed" }, 500);
   }
-  if (sig !== expectSig) return json({ error: "bad signature" }, 403);
+  if (sig !== expectSig) return json({ error: "bad_signature" }, 403);
 
   const issuedAt = Number(issuedAtStr) | 0;
   const ttl = Number(ttlStr) | 0;
@@ -91,7 +90,7 @@ async function goHandler(url, env) {
 
   const key = `t:${id}`;
   const exists = await env.TICKETS.get(key);
-  if (!exists) return json({ error: "already used or unknown" }, 403);
+  if (!exists) return json({ error: "already_used_or_unknown" }, 403);
   
   await env.TICKETS.delete(key);
 
@@ -119,6 +118,9 @@ async function hmac(secret, msg) {
     { name: "HMAC", hash: "SHA-256" },
     false, ["sign"]
   );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
-  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=+$/,'');
+  const sigBuffer = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+  
+  // Převod ArrayBuffer na Base64 string (URL-safe)
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(sigBuffer)));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
