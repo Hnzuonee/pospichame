@@ -95,7 +95,6 @@ function serveHero(): Response {
 
   <footer class="footer">© 2025 Kristy • Vstupem potvrzuješ, že je ti 18+</footer>
 
-  <!-- skrytý widget Turnstile (viditelný režim, mimo viewport) -->
   <div class="ts-wrap">
     <div id="ts-widget" class="cf-turnstile"
          data-sitekey="0x4AAAAAAB3aoUBtDi_jhPAf"
@@ -106,34 +105,79 @@ function serveHero(): Response {
   </div>
 
   <script>
-    let busy=false, running=false, token="";
-    const $btn=document.getElementById('enterBtn'), $msg=document.getElementById('msg');
-    const WID = "#ts-widget";
-    function setMsg(t){ $msg.textContent=t||"" } function setBusy(b){ busy=b; $btn.disabled=b }
+    const btn = document.getElementById('enterBtn');
+    const msg = document.getElementById('msg');
+    const WIDGET_ID = "#ts-widget";
+    let isProcessing = false;
 
-    $btn.addEventListener('click', ()=>{ if(busy||running) return; setBusy(true); setMsg("Ověřuji…");
-      try{
-        if(!window.turnstile){ setBusy(false); return setMsg("Ověření není dostupné. Zkus později."); }
-        running = true;
-        turnstile.reset(WID);
-        try{ if(typeof turnstile.execute==="function") turnstile.execute(WID); }catch{}
-      }catch(e){ running=false; setBusy(false); setMsg("Chyba při spuštění ověření."); }
-    });
-
-    window.onTsSuccess = async function(tok){
-      token = tok || ""; setMsg("Ověřeno, připravuji vstup…");
-      try{
-        const res = await fetch('/v', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ t: token })});
-        if(!res.ok){ let d=null; try{ d=await res.json(); }catch{}; running=false; setBusy(false);
-          setMsg(d&&d.error?('Server: '+d.error):('Server chyba ('+res.status+')'));
-          try{ turnstile.reset(WID); }catch{} token=""; return; }
-        const d = await res.json(); const k = d?.k || d?.ticket;
-        if(!k){ running=false; setBusy(false); setMsg("Chybí ticket. Zkus to znovu."); try{turnstile.reset(WID);}catch{} token=""; return; }
-        window.location.href = '/g?ticket='+encodeURIComponent(k);
-      }catch(e){ running=false; setBusy(false); setMsg("Síťová chyba. Zkus to znovu."); try{turnstile.reset(WID);}catch{} token=""; }
+    const setStatus = (text = "", busy = false) => {
+      msg.textContent = text;
+      btn.disabled = busy;
+      isProcessing = busy;
     };
-    window.onTsError   = function(){ running=false; setBusy(false); setMsg("Chyba ověření. Zkus to prosím znovu."); };
-    window.onTsTimeout = function(){ running=false; setBusy(false); setMsg("Čas ověření vypršel. Zkus to znovu."); };
+
+    const handleError = (message) => {
+      setStatus(message, false);
+      try {
+        window.turnstile?.reset(WIDGET_ID);
+      } catch (e) {
+        console.error("Failed to reset Turnstile:", e);
+      }
+    };
+
+    window.onTsSuccess = async (token) => {
+      if (!token) {
+        return handleError("Ověření selhalo, zkuste to znovu.");
+      }
+      setStatus("Ověřeno, připravuji vstup…", true);
+
+      try {
+        const response = await fetch('/v', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ t: token }),
+        });
+
+        if (!response.ok) {
+          let errorMsg = \`Server chyba (\${response.status})\`;
+          try {
+            const jsonError = await response.json();
+            if (jsonError?.error) errorMsg = 'Server: ' + jsonError.error;
+          } catch {}
+          throw new Error(errorMsg);
+        }
+
+        const data = await response.json();
+        const ticket = data?.k || data?.ticket;
+
+        if (!ticket) {
+          throw new Error("Chybí vstupenka, zkuste to znovu.");
+        }
+
+        window.location.href = \`/g?ticket=\${encodeURIComponent(ticket)}\`;
+
+      } catch (e) {
+        handleError(e.message || "Síťová chyba, zkuste to znovu.");
+      }
+    };
+
+    window.onTsError   = () => handleError("Chyba ověření, zkuste to prosím znovu.");
+    window.onTsTimeout = () => handleError("Čas ověření vypršel, zkuste to znovu.");
+
+    btn.addEventListener('click', () => {
+      if (isProcessing) return;
+      setStatus("Ověřuji…", true);
+
+      if (typeof window.turnstile?.execute !== 'function') {
+        return handleError("Ověření není dostupné, zkuste to později.");
+      }
+
+      try {
+        turnstile.execute(WIDGET_ID);
+      } catch (e) {
+        handleError("Chyba při spuštění ověření.");
+      }
+    });
   </script>
 </body>
 </html>`;
