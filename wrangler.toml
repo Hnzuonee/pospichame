@@ -1,5 +1,5 @@
 name = "pospichame"
-main = "src/worker.js" # Opravená cesta
+main = "src/worker.js"
 compatibility_date = "2024-01-01"
 
 [assets]
@@ -12,7 +12,4 @@ id = "a68011cded084fffa6106b7a55a8156d" # Nahraďte vlastním ID
 [observability.logs]
 enabled = true
 
-[vars]
-TURNSTILE_SECRET = ""
-SIGNING_SECRET = ""
-TARGET_URL = ""
+# Sekce [vars] byla kompletně odstraněna
