@@ -1,89 +1,46 @@
-const ctaButton = document.getElementById('cta');
-const msgElement = document.getElementById('msg');
-let isProcessing = false;
-let widgetId = null;
+// s.js
+window.turnstileReady = function () {
+  const mount = document.getElementById('turnstile-container');
+  const btn = document.getElementById('cta');
+  const msg = document.getElementById('msg');
 
-const setStatus = (message = '', buttonText = null, busy = false) => {
-  msgElement.textContent = message;
-  isProcessing = busy;
-  ctaButton.disabled = busy;
-  if (buttonText) {
-    ctaButton.textContent = buttonText;
-  }
-};
-
-const handleError = (message) => {
-  setStatus(message, 'Zkusit znovu', false);
-  try {
-    if (widgetId && window.turnstile) {
-      turnstile.reset(widgetId);
-    }
-  } catch (e) {
-    console.error('Failed to reset Turnstile widget:', e);
-  }
-};
-
-window.onTurnstileSuccess = async (token) => {
-  if (!token) {
-    return handleError('Ověření selhalo, zkuste to prosím znovu.');
-  }
-  setStatus('Ověřeno, připravuji vstup…', 'Moment…', true);
+  if (!mount) return;
 
   try {
-    const response = await fetch('/v', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ t: token }),
+    // render
+    const wid = turnstile.render(mount, {
+      sitekey: 'TVUJ_SITE_KEY',
+      action: 'go',
+      size: 'invisible', // nebo 'flexible' pokud chceš viditelný widget
+      callback: async (token) => {
+        // POST /v → dostat ticket → /g?ticket=...
+        try {
+          msg.textContent = 'Ověřuji…';
+          const r = await fetch('/v', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ t: token })
+          });
+          const j = await r.json().catch(()=> ({}));
+          if (r.ok && j.k) {
+            window.location.href = `/g?ticket=${encodeURIComponent(j.k)}`;
+          } else {
+            msg.textContent = 'Ověření se nepovedlo, zkus to znovu.';
+            try { turnstile.reset(wid); } catch {}
+            if (btn) { btn.disabled = false; btn.textContent = 'Pokračovat'; }
+          }
+        } catch {
+          msg.textContent = 'Došlo k chybě připojení. Zkus to znovu.';
+          try { turnstile.reset(wid); } catch {}
+          if (btn) { btn.disabled = false; btn.textContent = 'Pokračovat'; }
+        }
+      }
     });
 
-    if (!response.ok) {
-      let errorData = null;
-      try { errorData = await response.json(); } catch {}
-      const errorMessage = errorData?.error ? `Server: ${errorData.error}` : `Server chyba (${response.status})`;
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    const ticket = data?.k || data?.ticket;
-
-    if (!ticket) {
-      throw new Error('Chybí vstupenka, zkuste to prosím znovu.');
-    }
-    
-    window.location.href = `/g?ticket=${encodeURIComponent(ticket)}`;
-
+    // **DŮLEŽITÉ**: spustit hned po renderu (žádný druhý klik)
+    try { turnstile.execute(mount); } catch {}
   } catch (e) {
-    handleError(e.message || 'Síťová chyba. Zkuste to prosím znovu.');
+    if (msg) msg.textContent = 'Načtení ověření selhalo.';
+    if (btn) { btn.disabled = false; btn.textContent = 'Pokračovat'; }
   }
 };
-
-window.onTurnstileError = () => handleError('Chyba ověření. Zkuste to prosím znovu.');
-
-window.turnstileReady = () => {
-  try {
-    widgetId = turnstile.render('#turnstile-container', {
-      sitekey: '0x4AAAAAAB3aoUBtDi_jhPAf',
-      callback: window.onTurnstileSuccess,
-      'error-callback': window.onTurnstileError,
-      'timeout-callback': window.onTurnstileError,
-      execution: 'execute',
-      theme: 'dark',
-      size: 'invisible',
-    });
-    setStatus('', 'Vstoupit ❤️', false);
-  } catch (e) {
-    console.error('Turnstile render failed:', e);
-    handleError('Nepodařilo se načíst ověření.');
-  }
-};
-
-ctaButton.addEventListener('click', () => {
-  if (isProcessing) return;
-  
-  if (widgetId && window.turnstile) {
-    setStatus('Ověřuji…', 'Ověřuji…', true);
-    turnstile.execute(widgetId);
-  } else {
-    handleError('Ověření není připraveno. Zkuste obnovit stránku.');
-  }
-});
