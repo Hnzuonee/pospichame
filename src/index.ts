@@ -21,12 +21,10 @@ export default {
       return new Response("ok", { status: 200 });
     }
 
-    // Pro vše ostatní se pokusíme servírovat statický soubor.
-    // Cloudflare Workers toto řeší automaticky díky [assets] v wrangler.toml
-    // a `NotFound` fallbacku, který zde není explicitně potřeba.
-    // Pokud by soubor neexistoval, worker vrátí 404.
-
-    return new Response("Not found", { status: 404 });
+    // Cloudflare automaticky servíruje statické soubory z `public` složky
+    // díky nastavení v `wrangler.toml`. Pokud soubor nenajde, vrátí 404.
+    // Tento fallback je pro případy, kdy by statický asset server selhal.
+    return new Response("Not found.", { status: 404 });
   },
 } satisfies ExportedHandler<Env>;
 
@@ -76,7 +74,7 @@ async function verifyHandler(request: Request, env: Env): Promise<Response> {
   }
 
   const ticket = `${id}.${issuedAt}.${ttl}.${sig}`;
-  return json({ k: ticket, ticket }, 200);
+  return json({ k: ticket }, 200);
 }
 
 async function goHandler(url: URL, env: Env): Promise<Response> {
