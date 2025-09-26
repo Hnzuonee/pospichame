@@ -11,3 +11,8 @@ id = "a68011cded084fffa6106b7a55a8156d"
 
 [observability.logs]
 enabled = true
+# TATO ČÁST ŘEKNE CLOUDFLARE, ABY NÁSLEDUJÍCÍ PROMĚNNÉ NEMAZAL
+[vars]
+TURNSTILE_SECRET = ""
+SIGNING_SECRET = ""
+TARGET_URL = ""
