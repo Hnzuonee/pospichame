@@ -1,4 +1,3 @@
-// Globální proměnné pro stav
 const ctaButton = document.getElementById('cta');
 const msgElement = document.getElementById('msg');
 let isProcessing = false;
@@ -62,7 +61,6 @@ window.onTurnstileError = () => handleError('Chyba ověření. Zkuste to prosím
 
 window.turnstileReady = () => {
   try {
-    // ZMĚNA: Vykreslíme widget do specifického kontejneru
     widgetId = turnstile.render('#turnstile-container', {
       sitekey: '0x4AAAAAAB3aoUBtDi_jhPAf',
       callback: window.onTurnstileSuccess,
@@ -72,7 +70,7 @@ window.turnstileReady = () => {
       theme: 'dark',
       size: 'invisible',
     });
-    setStatus('', 'Vstoupit ❤️', false); // Změněn text tlačítka
+    setStatus('', 'Vstoupit ❤️', false);
   } catch (e) {
     console.error('Turnstile render failed:', e);
     handleError('Nepodařilo se načíst ověření.');
