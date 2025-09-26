@@ -74,6 +74,8 @@ window.turnstileReady = () => {
     callback: window.onTurnstileSuccess,
     'error-callback': window.onTurnstileError,
     'timeout-callback': window.onTurnstileError,
+    // ----> TATO ZMĚNA VŠE OPRAVÍ <----
+    execution: 'execute', 
   };
 
   try {
