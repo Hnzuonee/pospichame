@@ -81,7 +81,7 @@ window.turnstileReady = () => {
   try {
     // Vykreslíme neviditelný widget a uložíme si jeho ID
     widgetId = turnstile.render('body', { ...turnstileOptions, theme: 'dark', size: 'invisible' });
-    setStatus('', 'Pokračovat na osobní stránku (18+)', false);
+    setStatus('', 'Pokračovat na osobní stránku', false);
   } catch (e) {
     console.error('Turnstile render failed:', e);
     handleError('Nepodařilo se načíst ověření.');
