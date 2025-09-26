@@ -2,9 +2,8 @@
 const ctaButton = document.getElementById('cta');
 const msgElement = document.getElementById('msg');
 let isProcessing = false;
-let widgetId = null; // Budeme ukládat ID widgetu
+let widgetId = null;
 
-// Funkce pro nastavení stavové zprávy a tlačítka
 const setStatus = (message = '', buttonText = null, busy = false) => {
   msgElement.textContent = message;
   isProcessing = busy;
@@ -14,7 +13,6 @@ const setStatus = (message = '', buttonText = null, busy = false) => {
   }
 };
 
-// Funkce pro zpracování chyb
 const handleError = (message) => {
   setStatus(message, 'Zkusit znovu', false);
   try {
@@ -26,7 +24,6 @@ const handleError = (message) => {
   }
 };
 
-// Callback, který se zavolá po úspěšném ověření Turnstile
 window.onTurnstileSuccess = async (token) => {
   if (!token) {
     return handleError('Ověření selhalo, zkuste to prosím znovu.');
@@ -42,9 +39,7 @@ window.onTurnstileSuccess = async (token) => {
 
     if (!response.ok) {
       let errorData = null;
-      try {
-        errorData = await response.json();
-      } catch {}
+      try { errorData = await response.json(); } catch {}
       const errorMessage = errorData?.error ? `Server: ${errorData.error}` : `Server chyba (${response.status})`;
       throw new Error(errorMessage);
     }
@@ -56,7 +51,6 @@ window.onTurnstileSuccess = async (token) => {
       throw new Error('Chybí vstupenka, zkuste to prosím znovu.');
     }
     
-    // Vše OK, přesměrování
     window.location.href = `/g?ticket=${encodeURIComponent(ticket)}`;
 
   } catch (e) {
@@ -64,31 +58,27 @@ window.onTurnstileSuccess = async (token) => {
   }
 };
 
-// Callback pro chyby a timeout Turnstile
 window.onTurnstileError = () => handleError('Chyba ověření. Zkuste to prosím znovu.');
 
-// Tato funkce se zavolá, jakmile je externí skript Turnstile načtený a připravený
 window.turnstileReady = () => {
-  const turnstileOptions = {
-    sitekey: '0x4AAAAAAB3aoUBtDi_jhPAf',
-    callback: window.onTurnstileSuccess,
-    'error-callback': window.onTurnstileError,
-    'timeout-callback': window.onTurnstileError,
-    // ----> TATO ZMĚNA VŠE OPRAVÍ <----
-    execution: 'execute', 
-  };
-
   try {
-    // Vykreslíme neviditelný widget a uložíme si jeho ID
-    widgetId = turnstile.render('body', { ...turnstileOptions, theme: 'dark', size: 'invisible' });
-    setStatus('', 'Pokračovat na osobní stránku', false);
+    // ZMĚNA: Vykreslíme widget do specifického kontejneru
+    widgetId = turnstile.render('#turnstile-container', {
+      sitekey: '0x4AAAAAAB3aoUBtDi_jhPAf',
+      callback: window.onTurnstileSuccess,
+      'error-callback': window.onTurnstileError,
+      'timeout-callback': window.onTurnstileError,
+      execution: 'execute',
+      theme: 'dark',
+      size: 'invisible',
+    });
+    setStatus('', 'Vstoupit ❤️', false); // Změněn text tlačítka
   } catch (e) {
     console.error('Turnstile render failed:', e);
     handleError('Nepodařilo se načíst ověření.');
   }
 };
 
-// Při kliknutí na tlačítko spustíme ověření
 ctaButton.addEventListener('click', () => {
   if (isProcessing) return;
   
