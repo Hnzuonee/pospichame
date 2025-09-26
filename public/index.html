@@ -7,7 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
-  <meta name="robots" content="noindex,nofollow">
   <style>
     :root { --background-color: #0d0d1a; --primary-pink: #f900ff; --primary-cyan: #00f2ff; --text: #f0f0f0; --surface: rgba(26,26,41,.7); }
     * { box-sizing: border-box; }
@@ -24,9 +23,7 @@
     .tags { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 22px; }
     .tag { font-size: .9rem; padding: 6px 10px; border: 1px solid rgba(255,255,255,.15); border-radius: 12px; opacity: .9; }
     .cta-wrap { text-align: left; }
-    .cta { color: #fff; border: 0; border-radius: 50px; padding: 16px 36px; font-size: 1.05rem; font-weight: 700; cursor: pointer; background: linear-gradient(-45deg, var(--primary-pink), var(--primary-cyan)); background-size: 200% 200%; animation: bg 8s ease infinite; letter-spacing: 1.2px; text-transform: uppercase; }
-    .cta:disabled { opacity: .6; cursor: not-allowed; }
-    .note { font-size: .85rem; opacity: .7; margin-top: 12px; min-height: 1.2em; }
+    .cta { color: #fff; border: 0; border-radius: 50px; padding: 16px 36px; font-size: 1.05rem; font-weight: 700; cursor: pointer; background: linear-gradient(-45deg, var(--primary-pink), var(--primary-cyan)); background-size: 200% 200%; animation: bg 8s ease infinite; letter-spacing: 1.2px; text-transform: uppercase; text-decoration:none; display:inline-block; }
     .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
     .gallery img { width: 100%; height: 220px; object-fit: cover; border-radius: 16px; }
     .footer { text-align: center; padding: 20px 0; font-size: .9rem; opacity: .6; }
@@ -41,15 +38,13 @@
         <div class="hero-text">
           <h1>Kristy</h1>
           <p class="sub">Official Page • Lifestyle &amp; Fitness</p>
-          <p class="bio">Ahoj, jsem Kristy. Konečně jsi našel, co hledáš. Stačí jeden klik a jsem jen tvoje❤️</p>
+          <p class="bio">Ahoj, jsem Kristy. Klikni na tlačítko níže a pokračuj na ověřenou sekci.</p>
           <div class="tags">
             <span class="tag">Výška 153&nbsp;cm</span><span class="tag">Váha 44&nbsp;kg</span><span class="tag">Míry 76–45–76</span>
             <span class="tag">Blond</span><span class="tag">Modré oči</span><span class="tag">21&nbsp;let</span><span class="tag">CZ</span>
           </div>
           <div class="cta-wrap">
-            <button id="cta" class="cta" disabled>Načítám ověření...</button>
-            <div id="msg" class="note"></div>
-            <div id="turnstile-container"></div>
+            <a class="cta" href="/start">Pokračovat</a>
           </div>
         </div>
       </div>
@@ -63,9 +58,10 @@
     </section>
   </div>
   <footer class="footer">
-    © 2025 Kristy • Vstupem potvrzuješ, že jsi dospělý
+    © 2025 Kristy • Vstupem potvrzuješ, že jsi dospělý • 
+    <a href="/privacy.html">Zásady ochrany soukromí</a> · 
+    <a href="/terms.html">Podmínky</a> · 
+    <a href="mailto:admin@pospichame.com">Kontakt</a>
   </footer>
-  <script src="/s.js" defer></script>
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=turnstileReady" defer></script>
 </body>
 </html>
