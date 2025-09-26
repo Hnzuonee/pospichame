@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kristy | Verifikace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; font-family: 'Poppins', sans-serif; background:#0d0d1a; color:#fff; display:flex; justify-content:center; align-items:center; height:100vh; }
+    .box { background:rgba(255,255,255,0.05); padding:32px; border-radius:20px; max-width:400px; width:100%; text-align:center; }
+    h1 { margin:0 0 12px; font-size:1.6rem; }
+    .cta { margin-top:20px; padding:14px 28px; border:0; border-radius:50px; background:#f900ff; color:#fff; font-weight:700; font-size:1rem; cursor:pointer; }
+    .note { margin-top:10px; font-size:.9rem; opacity:.7; min-height:1.2em; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Ověření vstupu</h1>
+    <p>Pro pokračování projdi jednoduchým ověřením.</p>
+    <button id="cta" class="cta" disabled>Načítám ověření...</button>
+    <div id="msg" class="note"></div>
+    <div id="turnstile-container"></div>
+  </div>
+
+  <script src="/s.js" defer></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=turnstileReady" defer></script>
+</body>
+</html>
